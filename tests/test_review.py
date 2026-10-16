@@ -95,3 +95,9 @@ def test_auto_fix_moves_a_cut_that_is_a_frame_early(tmp_path):
     good = scenes([40], total=80, info=info)
     assert auto_fix(good, 41, path)["to"] == 40           # a right cut stays
     assert "error" in auto_fix(good, 75, path)            # no cut near the playhead
+
+
+def test_auto_fix_leaves_transitions_to_the_user():
+    sl = scenes([50, 100])
+    sl.segments[1].cut.relation = "transition"
+    assert "transition" in auto_fix(sl, 50, "/no/video.mp4")["error"]

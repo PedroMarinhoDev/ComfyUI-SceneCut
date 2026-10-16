@@ -85,7 +85,8 @@ refinement or validation removed on a lower track, a panel with the scene's deta
 card per scene. **Open large view** puts it over the whole window.
 
 - **Fix cut** (`A`): put the playhead on a frame on the wrong side of a cut, say the first frame of a scene still shows the
-  previous shot. The frames around the cut are compared with both scenes and the cut moves to where they switch.
+  previous shot. The frames around the cut are compared with both scenes and with each other, and the cut moves to where
+  the picture changes. A cut that ends a dissolve, wipe or fade has no such frame: move it with Join to nearest cut.
 - **Join to nearest cut** (`M`): the frame under the playhead, and any frames between it and the nearest cut of its scene,
   move to the scene on the other side. **Undo** with `Ctrl+Z`.
 - **Select**: the circle on a card, `S`, `Ctrl`+click, or `Shift`+click for a range; **Select all**, **Deselect all**,

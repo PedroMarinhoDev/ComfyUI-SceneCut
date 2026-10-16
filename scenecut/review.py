@@ -25,6 +25,7 @@ from .scenes import SceneList
 
 LAYOUT = 32                  # side of the colour-layout thumbnail used to compare frames
 MAX_REACH_SECONDS = 1.0      # how far from the playhead a cut may be for "fix cut"
+ADJACENT_WEIGHT = 0.5        # weight of the frame-to-frame change against the group comparison
 
 
 def fingerprint(sl: SceneList) -> str:
@@ -135,6 +136,9 @@ def auto_fix(sl: SceneList, frame: int, video: str, embed: Optional[Callable] = 
         return {"error": f"No cut within {MAX_REACH_SECONDS:g} s of the playhead: put it on a frame "
                          "next to the cut you want to fix."}
     a, b = sl.segments[index - 1], sl.segments[index]
+    if a.kind == "transition" or b.kind == "transition" or (b.cut is not None and b.cut.relation == "transition"):
+        return {"error": "This cut ends a transition (a dissolve, wipe or fade): there is no single frame where "
+                         "the picture changes. Use Join to nearest cut to move it by hand."}
     r = reach or max(6, abs(frame - cut) + 4)
     lo, hi = max(a.start + 1, min(cut, frame) - r), min(b.end - 1, max(cut, frame) + r)
     anchors = 4
@@ -153,6 +157,7 @@ def auto_fix(sl: SceneList, frame: int, video: str, embed: Optional[Callable] = 
         feats.append(embed(stack))
     to_before = np.zeros(len(span))
     to_after = np.zeros(len(span))
+    adjacent = np.zeros(len(span) + 1)          # similarity of frames j-1 and j, for a cut before span[j]
     for f in feats:
         f = f.float()
         ref_a = F.normalize(f[[i - first for i in pre]].mean(0), dim=0)
@@ -160,8 +165,17 @@ def auto_fix(sl: SceneList, frame: int, video: str, embed: Optional[Callable] = 
         x = f[[i - first for i in span]]
         to_before += (x @ ref_a).numpy() / len(feats)
         to_after += (x @ ref_b).numpy() / len(feats)
-    new, costs = best_split(lo, to_before, to_after, prefer=cut, margin=0.02)
-    new = max(a.start + 1, min(b.end - 1, new))
+        idx = [i - first for i in range(lo, hi + 2)]
+        adjacent += (f[idx] * f[[i - 1 for i in idx]]).sum(dim=1).numpy() / len(feats)
+    _, costs = best_split(lo, to_before, to_after)
+    # Where the frames switch groups, weighed with how sharply the picture changes between two
+    # frames: within a fast-moving shot the frames resemble neither group well, but a cut is still
+    # the one place where consecutive frames stop looking alike.
+    score = np.asarray(costs) / len(span) + ADJACENT_WEIGHT * adjacent
+    best = int(np.argmin(score))
+    if lo <= cut <= hi + 1 and score[cut - lo] <= score[best] + 0.02:
+        best = cut - lo                          # the detector's frame unless clearly beaten
+    new = max(a.start + 1, min(b.end - 1, lo + best))
     return {"index": index, "cut": cut, "to": int(new), "mode": "auto",
             "frames": span, "toBefore": [round(float(v), 4) for v in to_before],
             "toAfter": [round(float(v), 4) for v in to_after], "method": "dinov3+layout" if embed else "layout"}

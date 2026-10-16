@@ -241,6 +241,13 @@ To do when a GPU is free: comparisons on GPU, timing, bf16 check.
 - Export jobs run on a thread, polled by the dialog (progress, cancel, keep running in the
   background, a toast at the end).
 
+**Fix cut, frame-to-frame term** (2026-10-16). On the demo video, every cut moved by 1-3 frames
+either way and the right cuts left alone: hard cuts and jump cuts 143/143 (was 123/143). The group
+comparison alone failed inside fast-moving shots, whose frames resemble neither scene; the
+similarity of consecutive frames drops at a cut whatever the content. Cuts that end a transition
+(31 of 33 failed either way: no single frame changes) are declined with a pointer to Join to
+nearest cut.
+
 ## Testing
 
 - `dev/ref_oracle.py` produces reference outputs from the old headless pipeline (run with that
