@@ -131,12 +131,17 @@ class ValidatorConfig:
     tiny_ultra_short_seconds: float = 0.04
     tiny_flash_conf: float = 0.35
     tiny_score_flash_w: float = 1.2
+    # a cut the detector says ends a transition: also compare with frames from before it
+    lookback_seconds: float = 1.2
+    lookback_frames: int = 8
+    lookback_cut: float = 0.60         # below this the scene before the transition is a different one
     # throughput
     batch_size: int = 48
 
     def feature_key(self) -> tuple:
         """Everything that changes extracted features (as opposed to decisions)."""
-        return (self.window, float(self.flash_sensitivity), bool(self.use_sscd))
+        return (self.window, float(self.flash_sensitivity), bool(self.use_sscd), float(self.lookback_seconds),
+                int(self.lookback_frames))
 
     def window_geometry(self) -> tuple[int, int, int]:
         """(gap, small window, large window) in frames."""
@@ -452,8 +457,9 @@ def _flash_side_cut(fr: _Frames, cut: int, total: int, fe: dict, cfg) -> Optiona
 
 
 def cut_features(fr: _Frames, cut: int, total: int, cfg: ValidatorConfig, device,
-                 sscd=None) -> Optional[dict]:
-    """Everything the decision needs about one boundary, or None without enough frames."""
+                 sscd=None, lookback: Optional[tuple[int, int]] = None) -> Optional[dict]:
+    """Everything the decision needs about one boundary, or None without enough frames. `lookback`
+    (first, end) adds `s_lookback`: how alike the frames there and the frames after the cut are."""
     gap, ws, wl = cfg.window_geometry()
     pre_s, post_s = _windows(cut, ws, gap, total)
     pre_l, post_l = _windows(cut, wl, gap, total)
@@ -529,7 +535,19 @@ def cut_features(fr: _Frames, cut: int, total: int, cfg: ValidatorConfig, device
         "pixel_sim": pixel_sim, "flash": fe,
         "sscd": _sscd_similarity(fr, cut, total, fe, sscd, cfg) if sscd is not None else None,
         "flash_cut": _flash_side_cut(fr, cut, total, fe, cfg),
+        "s_lookback": _lookback_similarity(fr, lookback, post_s, cfg, device) if lookback else None,
     }
+
+
+def _lookback_similarity(fr: _Frames, lookback: tuple[int, int], post: list[int], cfg: ValidatorConfig,
+                         device) -> Optional[float]:
+    idxs = [i for i in range(*lookback) if i in fr.cls]
+    if len(idxs) < 2:
+        return None
+    s_cls, s_dense = _cls_median(fr, idxs, post), _dense_median(fr, idxs, post, device)
+    if s_cls is None:
+        return None
+    return float(s_cls if s_dense is None else (1 - cfg.dense_weight) * s_cls + cfg.dense_weight * s_dense)
 
 
 # --------------------------------------------------------------------------------------------- #
@@ -642,8 +660,11 @@ def record(f: dict, thr: float, cfg: ValidatorConfig, **extra) -> dict:
 def extract(path: str, cuts: list[int], total: int, dino: DinoEmbedder, cfg: ValidatorConfig,
             sscd: Optional[SscdEmbedder] = None,
             progress: Optional[Callable[[int, int], None]] = None,
-            check_abort: Optional[Callable[[], None]] = None) -> dict[int, dict]:
-    """Features for each cut (and for the flash-corrected position of flash cuts)."""
+            check_abort: Optional[Callable[[], None]] = None,
+            lookbacks: Optional[dict[int, tuple[int, int]]] = None) -> dict[int, dict]:
+    """Features for each cut (and for the flash-corrected position of flash cuts). `lookbacks`
+    {cut: (first, end)}: frames before a transition to compare with the frames after the cut."""
+    lookbacks = lookbacks or {}
     cuts = sorted(set(int(c) for c in cuts if 0 < c < total))
     out: dict[int, dict] = {}
     if not cuts:
@@ -655,7 +676,13 @@ def extract(path: str, cuts: list[int], total: int, dino: DinoEmbedder, cfg: Val
     for c in cuts:
         need.update(range(max(0, c - reach), min(total, c + reach)))
         need.update(range(max(0, c - cfg.flash_scan), min(total, c + cfg.flash_scan + 1)))
+        if c in lookbacks:
+            need.update(range(*lookbacks[c]))
     order = sorted(need)
+    # lowest frame each remaining cut still needs (frames below it can be dropped)
+    low = [min(c - reach - shift, lookbacks[c][0] if c in lookbacks else c) for c in cuts]
+    for k in range(len(low) - 2, -1, -1):
+        low[k] = min(low[k], low[k + 1])
     rgb_near = set()
     if sscd is not None:
         for c in cuts:
@@ -686,7 +713,7 @@ def extract(path: str, cuts: list[int], total: int, dino: DinoEmbedder, cfg: Val
         nonlocal next_cut
         while next_cut < len(cuts) and (cuts[next_cut] + reach + shift <= upto or upto >= total - 1):
             c = cuts[next_cut]
-            f = cut_features(fr, c, total, cfg, device, sscd)
+            f = cut_features(fr, c, total, cfg, device, sscd, lookbacks.get(c))
             if f is not None:
                 out[c] = f
                 fc = f.get("flash_cut")
@@ -696,7 +723,7 @@ def extract(path: str, cuts: list[int], total: int, dino: DinoEmbedder, cfg: Val
                         out[fc] = {**g, "derived_from": c}
             next_cut += 1
             if next_cut < len(cuts):
-                fr.drop_before(cuts[next_cut] - reach - shift)
+                fr.drop_before(low[next_cut])
 
     frames = prefetch(iter_frames_at(path, order, cfg.sscd_size, cfg.sscd_size))
     last = -1
@@ -727,6 +754,25 @@ def extract(path: str, cuts: list[int], total: int, dino: DinoEmbedder, cfg: Val
 # --------------------------------------------------------------------------------------------- #
 # Applying decisions to a scene list
 # --------------------------------------------------------------------------------------------- #
+def lookback_windows(sl: SceneList, cfg: ValidatorConfig) -> dict[int, tuple[int, int]]:
+    """For each cut the detector says ends a transition (a dissolve or fade it did not give a range
+    of its own): frames from before the transition, inside the previous segment. The frames just
+    before such a cut are the end of the transition and already look like the next shot, so they
+    alone would call it the same shot."""
+    fps = float(sl.fps) if sl.fps else 25.0
+    back = max(cfg.lookback_frames, int(round(cfg.lookback_seconds * fps)))
+    out = {}
+    segs = sl.segments
+    for i in range(1, len(segs)):
+        cut = segs[i].cut
+        if cut is None or cut.relation != "transition" or segs[i - 1].kind != "shot" or segs[i].kind != "shot":
+            continue
+        first, end = segs[i].start - back - cfg.lookback_frames, segs[i].start - back
+        if first >= segs[i - 1].start:
+            out[segs[i].start] = (first, end)
+    return out
+
+
 def eligible_cuts(sl: SceneList) -> list[int]:
     """Boundaries between two shots; boundaries touching a transition are not judged."""
     segs = sl.segments
@@ -756,6 +802,8 @@ def apply(sl: SceneList, feats: dict[int, dict], cfg: ValidatorConfig) -> SceneL
             continue
         f = feats[c]
         keep, reason = decide(f, thr, cfg)
+        if not keep and f.get("s_lookback") is not None and f["s_lookback"] < min(thr, cfg.lookback_cut):
+            keep, reason = True, "keep_after_transition"
         fe = f["flash"]
         s_sscd = sscd_used(f, thr, cfg)
         min_conf = cfg.guard_flash_conf_min_sscd if s_sscd is not None else cfg.guard_flash_conf_min
@@ -845,15 +893,18 @@ def run(sl: SceneList, dino: DinoEmbedder, cfg: ValidatorConfig, sscd: Optional[
         cache: Optional[dict] = None, progress=None, check_abort=None) -> SceneList:
     """Validate `sl`. `cache` (any dict kept between calls) lets threshold changes skip decoding."""
     cuts = eligible_cuts(sl)
+    lookbacks = lookback_windows(sl, cfg)
     mtime = os.path.getmtime(sl.source.path) if os.path.exists(sl.source.path) else 0
     key = (sl.source.path, mtime, sl.frame_count, dino.name,
            getattr(sscd, "name", None) if cfg.use_sscd else None, cfg.feature_key())
     store = cache.setdefault(key, {}) if cache is not None else {}
     # A position first computed as another cut's flash correction has no SSCD; redo it as a cut.
-    missing = [c for c in cuts if c not in store or (store[c] or {}).get("derived_from") is not None]
+    missing = [c for c in cuts if c not in store or (store[c] or {}).get("derived_from") is not None
+               or (c in lookbacks and store[c] is not None and store[c].get("s_lookback") is None)]
     if missing:
         store.update(extract(sl.source.path, missing, sl.frame_count, dino, cfg,
-                             sscd if cfg.use_sscd else None, progress, check_abort))
+                             sscd if cfg.use_sscd else None, progress, check_abort,
+                             {c: w for c, w in lookbacks.items() if c in missing}))
         for c in missing:
             store.setdefault(c, None)
     feats = {c: f for c, f in store.items() if f is not None}

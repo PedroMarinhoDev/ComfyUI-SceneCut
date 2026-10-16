@@ -137,3 +137,21 @@ def test_flash_cut_follows_what_the_frames_look_like():
     assert fe["is_flash"] and fe["run_frames"] == [101, 102]
     assert V._flash_side_cut(fr, 101, 600, fe, CFG) == 101          # stays on the detector's frame
     assert V._flash_side_cut(fr, 100, 600, V.flash_event(fr, 100, 600, CFG), CFG) == 101
+
+
+def test_a_cut_after_a_transition_is_compared_with_the_scene_before_it():
+    """The frames just before a cut that ends a dissolve already show the next shot; the cut stays
+    when frames from before the dissolve look different, and merges when they look the same."""
+    sl = scenes([100, 300])
+    sl.segments[2].cut.relation = "transition"
+    win = V.lookback_windows(sl, CFG)
+    assert list(win) == [300] and win[300] == (300 - 36 - 8, 300 - 36)        # 1.2 s back at 30 fps
+    feats = {100: feat(100), 300: same_shot(300)}
+    feats[300]["s_lookback"] = 0.2                                              # a different scene before
+    out = V.apply(sl, feats, CFG)
+    assert out.cuts == [100, 300] and out.segments[2].cut.validation["reason"] == "keep_after_transition"
+    feats[300]["s_lookback"] = 0.9                                              # the same shot moving
+    assert V.apply(sl, feats, CFG).cuts == [100]
+    short = scenes([100, 120])                                                  # no room in the previous shot
+    short.segments[2].cut.relation = "transition"
+    assert V.lookback_windows(short, CFG) == {}

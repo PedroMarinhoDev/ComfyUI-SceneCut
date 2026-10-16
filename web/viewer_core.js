@@ -133,6 +133,7 @@ const REASONS = {
   merge_flash: "camera flash, not a cut", keep_flash_low_conf: "weak flash, kept",
   default_keep: "kept: no evidence against it", short_guard_keep: "kept: next to a very short shot",
   short_guard_merge_flash: "flash beside a very short shot",
+  keep_after_transition: "a different scene before the transition",
 };
 const EXPAND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';
 const CLOSE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -863,6 +864,7 @@ export class SceneCutViewer {
     if (v.motion != null) rows.push(["motion", v.motion.toFixed(3)]);
     if (v.flash) rows.push(["flash", `yes (${(v.flash_conf * 100).toFixed(0)}%, +${v.flash_amp.toFixed(0)} luma, ${v.flash_dur} fr)`]);
     if (v.s_sscd != null) rows.push(["SSCD", v.s_sscd.toFixed(3)]);
+    if (v.s_lookback != null) rows.push(["before the transition", `${v.s_lookback.toFixed(3)} alike`]);
     if (v.moved_for_flash != null) rows.push(["moved", `to ${v.moved_for_flash}, beside the flash`]);
     const g = el("div", "scv-kv");
     for (const [k, val] of rows) g.append(el("span", "scv-k", k), el("span", null, val));
