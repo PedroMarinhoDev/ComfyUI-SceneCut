@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SceneCut promo</title>
+<style>
+@font-face { font-family: Anton; src: url(fonts/anton.woff2) format("woff2"); }
+@font-face { font-family: Oswald; src: url(fonts/oswald.woff2) format("woff2"); font-weight: 200 700; }
+@font-face { font-family: "IBM Plex Sans"; src: url(fonts/IBMPlexSans-Regular.ttf); font-weight: 400; }
+@font-face { font-family: "IBM Plex Sans"; src: url(fonts/IBMPlexSans-Medium.ttf); font-weight: 500; }
+@font-face { font-family: "IBM Plex Sans"; src: url(fonts/IBMPlexSans-SemiBold.ttf); font-weight: 600; }
+@font-face { font-family: "IBM Plex Sans"; src: url(fonts/IBMPlexSans-Bold.ttf); font-weight: 700; }
+@font-face { font-family: "IBM Plex Mono"; src: url(fonts/IBMPlexMono-Regular.ttf); font-weight: 400; }
+@font-face { font-family: "IBM Plex Mono"; src: url(fonts/IBMPlexMono-Medium.ttf); font-weight: 500; }
+:root { --bg: #0D1117; --card: #151B23; --ink: #F0F6FC; --muted: #9198A1; --line: #30363D; --accent: #3ECF6E;
+        --cut: #4285F4; --jump: #AB47BC; --trans: #FB8C00; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); color: var(--ink);
+             font-family: "IBM Plex Sans", sans-serif; }
+.layer { position: absolute; inset: 0; opacity: 0; will-change: opacity; }
+.handle { position: absolute; right: 64px; top: 40px; font: 600 40px Oswald; color: rgba(240, 246, 252, .62); z-index: 60;
+          letter-spacing: .01em; }
+/* step headings */
+.step { position: absolute; left: 96px; top: 52px; }
+.step .row { display: flex; align-items: baseline; gap: 22px; }
+.step .num { font: 600 46px Oswald; color: var(--accent); letter-spacing: .08em; }
+.step h2 { margin: 0; font: 400 90px/1 Anton; letter-spacing: .005em; text-transform: uppercase; }
+.step p { margin: 14px 0 0; font: 400 31px "IBM Plex Sans"; color: var(--muted); white-space: nowrap; }
+.step p b { color: var(--ink); font-weight: 600; }
+/* mosaic */
+.mosaic { position: absolute; inset: -40px 0; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+.mosaic .mrow { display: flex; gap: 14px; will-change: transform; }
+.mosaic img { width: 420px; height: 236px; object-fit: cover; border-radius: 10px; flex: none; }
+.shade { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(13,17,23,.80) 0%, rgba(13,17,23,.93) 60%, rgba(13,17,23,.98) 100%); }
+.titlebox { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.kicker { font: 600 40px Oswald; letter-spacing: .32em; color: var(--accent); margin-right: -.32em; }
+.bigtitle { font: 400 270px/0.95 Anton; letter-spacing: .01em; margin: 6px 0 4px; }
+.tagline { font: 600 50px Oswald; letter-spacing: .14em; color: var(--ink); margin-right: -.14em; }
+.tagline span { color: var(--accent); }
+/* detect scene */
+.screen { position: absolute; left: 416px; top: 214px; width: 1088px; height: 612px; border-radius: 14px; overflow: hidden;
+          border: 1px solid var(--line); background: #000; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+.screen img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.speed { position: absolute; right: 16px; top: 14px; padding: 4px 12px; border-radius: 8px; background: rgba(0,0,0,.6);
+         font: 600 26px Oswald; letter-spacing: .06em; }
+.scanbox { position: absolute; left: 96px; top: 858px; width: 1728px; }
+.scanhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.scanhead .label { font: 600 26px Oswald; letter-spacing: .22em; color: var(--muted); }
+.scanhead .count { font: 500 30px "IBM Plex Sans"; color: var(--ink); font-variant-numeric: tabular-nums; }
+.scanhead .count b { color: var(--accent); font-weight: 700; }
+#scan { width: 1728px; height: 150px; display: block; }
+/* viewer stage */
+#stagebox { position: absolute; left: 0; top: 222px; width: 1920px; height: 858px; overflow: hidden; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 858px; transform-origin: 0 0; will-change: transform; }
+#host { position: absolute; left: 130px; top: 6px; width: 1382.4px; height: 688px; transform: scale(1.2); transform-origin: 0 0;
+        border-radius: 10px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.55); border: 1px solid #2c2c33; }
+.scv-root { font-family: "IBM Plex Sans", sans-serif !important; }
+.scv-video img.still { max-width: 100%; max-height: 100%; height: 100%; width: auto; display: block; }
+.scx { zoom: 1.6; }
+.scx-back { top: 222px !important; }               /* dim the viewer, not the step heading */
+.scx, .scx * { font-family: "IBM Plex Sans", sans-serif; }
+/* film strip in the fix scene */
+.filmstrip { position: absolute; left: 50%; top: 262px; transform: translateX(-50%); padding: 18px 22px 16px; border-radius: 16px;
+             background: rgba(21,27,35,.97); border: 1px solid var(--line); box-shadow: 0 20px 60px rgba(0,0,0,.6); z-index: 20; }
+.filmstrip .frames { position: relative; display: flex; gap: 8px; }
+.filmstrip .f { position: relative; width: 168px; }
+.filmstrip .f img { width: 168px; height: 94px; display: block; border-radius: 6px; border: 3px solid transparent; }
+.filmstrip .f span { display: block; text-align: center; font: 500 22px "IBM Plex Mono"; color: var(--muted); margin-top: 6px; }
+.filmstrip .f.wrong img { border-color: #ff5d5d; }
+.filmstrip .marker { position: absolute; top: -10px; height: 130px; width: 5px; border-radius: 3px; margin-left: -2.5px; }
+.filmstrip .mlabel { position: absolute; top: -52px; transform: translateX(-50%); white-space: nowrap; font: 600 24px Oswald;
+                     letter-spacing: .08em; padding: 2px 10px; border-radius: 6px; }
+.filmstrip .note { margin-top: 10px; font: 500 26px "IBM Plex Sans"; color: #ff8a8a; text-align: center; }
+/* export: files */
+.files { position: absolute; left: 96px; right: 96px; top: 240px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; }
+.file { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.file img { width: 100%; aspect-ratio: 16 / 9; display: block; object-fit: cover; }
+.file .meta { padding: 12px 16px 14px; }
+.file .name { font: 500 24px "IBM Plex Mono"; color: var(--ink); }
+.file .info { font: 400 22px "IBM Plex Sans"; color: var(--muted); margin-top: 4px; }
+.jsonbox { position: absolute; left: 96px; top: 700px; width: 900px; background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+           padding: 18px 22px; font: 400 19px/1.55 "IBM Plex Mono"; color: var(--muted); white-space: pre; }
+.jsonbox b { color: var(--ink); font-weight: 500; }
+.jsonbox i { color: var(--accent); font-style: normal; }
+.codecs { position: absolute; left: 1036px; top: 712px; width: 788px; }
+.codecs .label { font: 600 26px Oswald; letter-spacing: .22em; color: var(--muted); margin-bottom: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 12px; }
+.chip { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font: 500 28px "IBM Plex Sans"; }
+.chip.on { border-color: var(--accent); color: var(--accent); }
+.chip small { color: var(--muted); font-size: 20px; margin-left: 6px; }
+/* workflow */
+.shot { position: absolute; left: 50%; top: 214px; width: 1340px; transform-origin: 50% 40%; border-radius: 14px; overflow: hidden;
+        border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.55); }
+.shot img { width: 100%; display: block; }
+/* features */
+.grid { position: absolute; left: 96px; right: 96px; top: 250px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+.feat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px; height: 340px; }
+.feat img { width: 56px; height: 56px; }
+.feat h3 { margin: 18px 0 10px; font: 400 48px/1.05 Anton; letter-spacing: .01em; }
+.feat p { margin: 0; font: 400 28px/1.35 "IBM Plex Sans"; color: var(--muted); }
+/* outro */
+.url { margin-top: 34px; font: 500 46px "IBM Plex Mono"; color: var(--ink); padding: 14px 28px; border-radius: 14px;
+       border: 1px solid var(--line); background: rgba(21,27,35,.9); }
+.sub2 { margin-top: 22px; font: 400 34px "IBM Plex Sans"; color: var(--muted); }
+.sub2 b { color: var(--accent); font-weight: 600; }
+/* cursor */
+#cursor { position: absolute; left: 0; top: 0; width: 44px; height: 44px; z-index: 100000; pointer-events: none; display: none;
+          filter: drop-shadow(0 3px 6px rgba(0,0,0,.6)); }
+.ripple { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; border: 4px solid var(--accent);
+          z-index: 99999; pointer-events: none; display: none; }
+.keycap { position: absolute; z-index: 100001; pointer-events: none; display: none; padding: 4px 14px; border-radius: 8px;
+          background: #F0F6FC; color: #0D1117; font: 700 26px "IBM Plex Sans"; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<div class="handle">@LatentSpacer</div>
+
+<div class="layer" id="L-title">
+  <div class="mosaic" id="mosaic1"></div><div class="shade"></div>
+  <div class="titlebox">
+    <div class="kicker">COMFYUI CUSTOM NODES</div>
+    <div class="bigtitle">SCENECUT</div>
+    <div class="tagline">FIND EVERY CUT <span>·</span> FIX IT <span>·</span> EXPORT THE CLIPS</div>
+  </div>
+</div>
+
+<div class="layer" id="L-detect">
+  <div class="step"><div class="row"><span class="num">01</span><h2>Find every shot</h2></div>
+    <p><b>OmniShotCut</b> finds the cuts and names the transitions; <b>DINOv3</b> checks every cut.</p></div>
+  <div class="screen"><img id="detect-img" alt=""><div class="speed">4.6×</div></div>
+  <div class="scanbox">
+    <div class="scanhead"><span class="label">TIMELINE</span><span class="count" id="scan-count"></span></div>
+    <canvas id="scan" width="3456" height="300"></canvas>
+  </div>
+</div>
+
+<div class="layer" id="L-stage"><div id="stagebox"><div id="stage"><div id="host"></div></div></div></div>
+
+<div class="layer" id="L-review">
+  <div class="step"><div class="row"><span class="num">02</span><h2>Review and select</h2></div>
+    <p>Play it, step frame by frame, and pick the scenes you want.</p></div>
+</div>
+
+<div class="layer" id="L-fix">
+  <div class="step"><div class="row"><span class="num">03</span><h2>Fix a cut in one click</h2></div>
+    <p>Playhead on a wrong frame, <b>Fix cut</b>: the cut moves to where the picture changes.</p></div>
+  <div class="filmstrip" id="filmstrip"><div class="frames" id="fs-frames"></div><div class="note" id="fs-note"></div></div>
+</div>
+
+<div class="layer" id="L-export">
+  <div class="step"><div class="row"><span class="num">04</span><h2>Export the clips</h2></div>
+    <p>One file per scene, cut on the exact frames, with its sound. Plus <b>scenes.json</b>.</p></div>
+</div>
+
+<div class="layer" id="L-files">
+  <div class="step"><div class="row"><span class="num">04</span><h2>Export the clips</h2></div>
+    <p>output/scenecut/scenecut-demo/scenes_00001/</p></div>
+  <div class="files" id="files"></div>
+  <div class="jsonbox" id="jsonbox"></div>
+  <div class="codecs"><div class="label">CODECS</div><div class="chips">
+    <span class="chip on">H.264</span><span class="chip">H.265<small>8 / 10-bit</small></span><span class="chip">NVENC<small>GPU</small></span>
+    <span class="chip">ProRes 422 HQ</span><span class="chip">FFV1<small>lossless</small></span><span class="chip">No ffmpeg needed</span></div></div>
+</div>
+
+<div class="layer" id="L-workflow">
+  <div class="step"><div class="row"><span class="num">05</span><h2>Four nodes in ComfyUI</h2></div>
+    <p>Load Video → Detect → Viewer → Selected Scenes. Models download on first use.</p></div>
+  <div class="shot" id="shot"><img src="workflow.png" alt=""></div>
+</div>
+
+<div class="layer" id="L-features">
+  <div class="step"><div class="row"><span class="num">06</span><h2>And the rest</h2></div>
+    <p>Simple preset nodes, and advanced nodes with every parameter.</p></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="layer" id="L-outro">
+  <div class="mosaic" id="mosaic2"></div><div class="shade"></div>
+  <div class="titlebox">
+    <div class="kicker">COMFYUI CUSTOM NODES</div>
+    <div class="bigtitle" style="font-size:210px">SCENECUT</div>
+    <div class="url">github.com/PedroMarinhoDev/ComfyUI-SceneCut</div>
+    <div class="sub2">Free and open source · MIT · <b>live demo</b> on the project page</div>
+  </div>
+</div>
+
+<svg id="cursor" viewBox="0 0 24 24"><path d="M4 2.5l15 11.2-6.6 1 3.7 7.1-2.9 1.5-3.7-7.2L4.6 21z" fill="#fff" stroke="#0D1117" stroke-width="1.4" stroke-linejoin="round"/></svg>
+<div class="ripple" id="ripple"></div>
+<div class="keycap" id="keycap">Ctrl</div>
+
+<script type="module" src="promo.js"></script>
+</body>
+</html>
