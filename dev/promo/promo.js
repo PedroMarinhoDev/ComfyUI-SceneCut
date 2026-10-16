@@ -34,7 +34,7 @@ const seg = (t, a, b) => clamp((t - a) / (b - a));
 const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 const easeOut = (x) => 1 - Math.pow(1 - x, 3);
 const lerp = (a, b, k) => a + (b - a) * k;
-const FPS = 24;
+let FPS = 30;                                      // set from the data below
 const pad = (n) => String(n).padStart(4, "0");
 const BIG = (n) => `frames/${pad(n)}.jpg`;
 const SMALL = (n) => `small/${pad(n)}.jpg`;
@@ -55,13 +55,17 @@ const css = (name) => getComputedStyle(document.documentElement).getPropertyValu
 const data = await (await fetch("data.json")).json();
 const segs = data.segments;
 const NF = data.source.frames;
-const SELECT = [1, 6, 9, 14];
-const FIX_TRUE = 492, FIX_WRONG = 494;           // checked: auto_fix brings 494 back to 492 on this video
+FPS = data.source.fps || 30;
+const SELECT = [2, 7, 14, 18];                   // as on the demo page
+const FOCUS = 14;                                // the scene played at the end of the review
+const FIX_TRUE = 330, FIX_WRONG = 332;           // checked: auto_fix brings 332 back to 330 on this video
+const FIX_SEG = segs.findIndex((s) => s.start === FIX_TRUE);
+const STEM = data.source.name.replace(/\.[^.]+$/, "");
 delete data.selection;                          // the site's demo data comes with a selection; start with none
 const variant = JSON.parse(JSON.stringify(data));
 variant.base = "promo-fix";
-variant.segments[5].end = FIX_WRONG;
-variant.segments[6].start = FIX_WRONG;
+variant.segments[FIX_SEG - 1].end = FIX_WRONG;
+variant.segments[FIX_SEG].start = FIX_WRONG;
 delete variant.selection;
 
 // ---- timeline --------------------------------------------------------------------------------------------
@@ -74,6 +78,7 @@ const at = (t, fn, sound) => { events.push({ t, fn, done: false }); if (sound) s
 for (const t of [4, 14, 24, 36, 43.2, 46, 51, 56]) sfx.push({ t: t - 0.15, kind: "whoosh" });
 
 // ---- mosaics (title and outro) ------------------------------------------------------------------------
+const MOSAIC = segs.filter((s, i) => i > 0 && i < segs.length - 1 && s.end - s.start >= 30);
 function buildMosaic(el) {
   const rows = [];
   for (let r = 0; r < 4; r++) {
@@ -83,7 +88,7 @@ function buildMosaic(el) {
     for (let c = 0; c < 6; c++) {
       const img = document.createElement("img");
       row.append(img);
-      imgs.push({ img, seg: segs[1 + ((r * 6 + c * 5) % 15)], phase: r * 7 + c * 13 });
+      imgs.push({ img, seg: MOSAIC[(r * 6 + c * 5) % MOSAIC.length], phase: r * 7 + c * 13 });
     }
     el.append(row);
     rows.push({ row, imgs, dir: r % 2 ? 1 : -1 });
@@ -107,6 +112,7 @@ const scan = $("scan"), sg = scan.getContext("2d");
 const thumbs = segs.map((s) => { const i = new Image(); i.src = SMALL(s.start + Math.floor((s.end - s.start) / 2)); return i; });
 await Promise.all(thumbs.map((i) => i.decode().catch(() => {})));
 const revealT = (f) => D0 + (f / (NF - 1)) * (D1 - D0);
+const SCREEN_LAST = segs[segs.length - 2].start + 30;   // the screen stops before the closing fade to black
 const cutKind = (i) => (segs[i].relation === "transition" ? "transition" : segs[i].relation === "sudden_jump" ? "jump" : "cut");
 const chipText = (i) => {
   if (cutKind(i) === "jump") return "jump cut";
@@ -187,8 +193,9 @@ function drawScan(t) {
   }
   const pl = (n, one, many) => `<b>${n}</b> ${n === 1 ? one : many}`;
   $("scan-count").innerHTML = `${pl(shots, "shot", "shots")} · ${pl(trans, "transition", "transitions")} · ${pl(jumps, "jump cut", "jump cuts")}`;
-  setImg($("detect-img"), BIG(Math.round(fpos)));
+  setImg($("detect-img"), BIG(Math.min(Math.round(fpos), SCREEN_LAST)));
 }
+document.querySelector("#L-detect .speed").textContent = `${(NF / FPS / (D1 - D0)).toFixed(1)}×`;
 
 // ---- the viewer (02-04) --------------------------------------------------------------------------------------
 let fixResolve = null;
@@ -286,26 +293,29 @@ const check = (i) => () => viewer.cards[i].querySelector(".scv-check");
 const card = (i) => () => viewer.cards[i];
 visible.push([15.1, 23.6]);
 move(15.1, 0.01, fixed(1980, 1000));
-move(15.5, 0.8, center(check(1)));
-click(16.4, () => viewer.togglePick(1));
-move(16.6, 0.7, center(check(6)));
-click(17.4, () => viewer.togglePick(6));
-move(17.6, 0.7, center(card(9), 0, -20));
+const [P1, P2, P3, P4] = SELECT;
+move(15.5, 0.8, center(check(P1)));
+click(16.4, () => viewer.togglePick(P1));
+move(16.6, 0.7, center(check(P2)));
+click(17.4, () => viewer.togglePick(P2));
+at(17.45, () => scrollWithin(viewer.strip, viewer.cards[P3]));
+move(17.6, 0.7, center(card(P3), 0, -20));
 keys.push([18.05, 18.7]);
-click(18.4, () => { viewer.anchor = 9; viewer.togglePick(9); });
-at(18.55, () => scrollWithin(viewer.strip, viewer.cards[14]));
-move(18.7, 0.6, center(card(14), 0, -20));
+click(18.4, () => { viewer.anchor = P3; viewer.togglePick(P3); });
+at(18.55, () => scrollWithin(viewer.strip, viewer.cards[P4]));
+move(18.7, 0.6, center(card(P4), 0, -20));
 keys.push([19.15, 19.8]);
-click(19.45, () => { viewer.anchor = 14; viewer.togglePick(14); });
+click(19.45, () => { viewer.anchor = P4; viewer.togglePick(P4); });
 move(19.8, 0.7, center(() => viewer.onlyBtn));
 click(20.6, () => viewer.toggleOnlyPicked());
-move(20.9, 0.8, center(card(9), 0, -20));
+move(20.9, 0.8, center(card(FOCUS), 0, -20));
 click(21.9, () => {});
-click(22.08, () => { viewer.focusScene(9); viewer.follow = true; });
+click(22.08, () => { viewer.focusScene(FOCUS); viewer.follow = true; });
 move(22.6, 0.9, fixed(1990, 900));
 function reviewFrame(t) {
-  if (t < 22.08) return 72 + (t - 14) * FPS;
-  return 690 + ((t - 22.08) * FPS) % 60;
+  if (t < 22.08) return segs[1].start + (t - 14) * FPS;
+  const f = segs[FOCUS];
+  return f.start + ((t - 22.08) * FPS) % (f.end - f.start);
 }
 
 // ---- 03 fix a cut --------------------------------------------------------------------------------------------
@@ -316,10 +326,10 @@ at(24.0, () => {
   viewer.follow = false;
   viewer.onlyPicked = false;
   viewer._applyFilter();
-  viewer.view = [425, 585];
+  viewer.view = [FIX_TRUE - 67, FIX_TRUE + 93];
   viewer._dirty = true;
 });
-const FS_FIRST = 488, FS_N = 10;
+const FS_FIRST = FIX_TRUE - 4, FS_N = 10;
 const fsFrames = $("fs-frames");
 const fsCells = [];
 for (let k = 0; k < FS_N; k++) {
@@ -388,9 +398,8 @@ at(35.8, () => {
 });
 const EXPORT_START = 39.15, EXPORT_LEN = 2.55;
 const TOTAL = SELECT.reduce((n, i) => n + segs[i].end - segs[i].start, 0);
-const STEM = "scenecut-demo";
 const FILES = SELECT.map((i) => `${STEM}_${String(i + 1).padStart(3, "0")}.mp4`);
-const FOLDER = "ComfyUI/output/scenecut/scenecut-demo/scenes_00001";
+const FOLDER = `ComfyUI/output/scenecut/${STEM}/scenes_00001`;
 const CODECS = [
   { id: "h264", label: "H.264 (mp4)", gpu: false, quality: true, ext: ".mp4" },
   { id: "h264_nvenc", label: "H.264, NVIDIA GPU (mp4)", gpu: true, quality: true, ext: ".mp4" },
@@ -405,7 +414,7 @@ function exportStatus() {
   const done = frac >= 1;
   return { id: "promo", state: done ? "done" : "running", done: Math.round(frac * TOTAL), total: TOTAL,
            clips: Math.min(4, Math.floor(frac * 4 + 1e-6)), clipsTotal: 4, folder: FOLDER,
-           relative: "output/scenecut/scenecut-demo/scenes_00001", codec: "h264", files: done ? FILES : undefined };
+           relative: `output/scenecut/${STEM}/scenes_00001`, codec: "h264", files: done ? FILES : undefined };
 }
 async function fakeFetch(path, body) {
   if (path === "/scenecut/export/codecs") return { codecs: CODECS, default: "h264", quality: ["high", "medium", "small"], defaultQuality: "high", jsonOnly: "none" };
@@ -420,7 +429,7 @@ click(39.1, () => document.querySelector(".scx button.scx-go").click());
 sfx.push({ t: 41.95, kind: "success" });
 move(42.1, 0.7, center(() => document.querySelector(".scx footer button.scx-go")));
 click(42.95, () => document.querySelector(".scx footer button.scx-go")?.click());
-function exportFrame(t) { return 72 + Math.max(0, t - 36) * FPS; }
+function exportFrame(t) { return segs[1].start + Math.max(0, t - 36) * FPS; }
 function updateDialogBar(t) {
   const fill = document.querySelector(".scx .scx-bar > i");
   if (fill && t >= EXPORT_START) fill.style.width = `${Math.round(seg(t, EXPORT_START, EXPORT_START + EXPORT_LEN) * 100)}%`;

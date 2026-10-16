@@ -1,11 +1,11 @@
 """The promo video for X and Reddit: 1920x1080, 60 fps, 64 s, with music and sound effects.
 
-    python dev/demo_footage.py && python dev/site_assets.py     # the demo video and the viewer data
+    cp trailer.mp4 dev/demo/trailer.mp4 && python dev/site_assets.py   # the demo video and the viewer data
     python dev/promo/promo_video.py --stills 2,10,18,28,30.6,40,44,48,53,60   # check frames
     python dev/promo/promo_video.py                              # dev/promo/out/scenecut-promo.mp4
 
 The picture is promo.html + promo.js rendered frame by frame by headless Chrome (the pack's own viewer
-and export dialog, the demo footage, a drawn cursor). The music is synthesized here: an A minor
+and export dialog, the demo trailer, a drawn cursor). The music is synthesized here: an A minor
 progression at 120 BPM whose sections follow the video's, with clicks, blips, whooshes and chimes at
 the times the page lists. Needs ComfyUI's Python (aiohttp, numpy, scipy), google-chrome and ffmpeg.
 """
@@ -30,7 +30,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 BUILD, OUT = HERE / "build", HERE / "out"
-DEMO = ROOT / "dev" / "demo" / "scenecut-demo.mp4"
+DEMO = ROOT / "dev" / "demo" / "trailer.mp4"
 FONTS = Path.home() / "Projects" / "music-visualizer" / "public" / "fonts"
 PLEX = Path("/usr/share/fonts/truetype/ibm-plex")
 FPS, W, H = 60, 1920, 1080
@@ -64,8 +64,10 @@ def build() -> None:
         if d.exists() and any(d.iterdir()):
             continue
         d.mkdir(exist_ok=True)
+        # passthrough: one image per decoded frame (a file whose first frame starts late would otherwise
+        # get a duplicate first image, and every number would be one frame off)
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(DEMO), "-vf", f"scale={size}:flags=lanczos", "-q:v", "2",
-                        "-start_number", "0", str(d / "%04d.jpg")], check=True)
+                        "-fps_mode", "passthrough", "-start_number", "0", str(d / "%04d.jpg")], check=True)
 
 
 def serve() -> http.server.ThreadingHTTPServer:
@@ -432,7 +434,7 @@ def main() -> None:
     p.add_argument("--audio-only", action="store_true", help="redo the sound on an existing render")
     a = p.parse_args()
     if not DEMO.exists():
-        sys.exit("run dev/demo_footage.py and dev/site_assets.py first")
+        sys.exit("put the demo video at dev/demo/trailer.mp4 and run dev/site_assets.py first")
     build()
     server = serve()
     try:

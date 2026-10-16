@@ -1,14 +1,14 @@
 """The demo page's data and the README's images, from the demo video.
 
-    python dev/demo_footage.py                       # the video (dev/demo/scenecut-demo.mp4)
+    cp trailer.mp4 dev/demo/trailer.mp4                 # the demo video (not in the repo)
     python dev/site_assets.py [--device cuda:0]      # site/demo/*, site/viewer_core.js, assets/*
     python dev/comfy_screenshot.py --server URL      # assets/workflow.png (then rerun site_assets.py)
 
-Runs SceneCut on the demo video (Film / TV preset, detection and refinement: validation is
-calibrated for camera footage, and generated patterns all look alike to DINOv3), writes the
+The demo video is the trailer of William Castle's Let's Kill Uncle (1966), in the public domain.
+Runs SceneCut on it as the Detect node does (Film / TV preset, with validation), writes the
 viewer's proxy, thumbnails and data for the page, and renders the README's banner, buttons and
 icons, and a screenshot of the viewer, with headless Chrome at 2x. Needs ComfyUI's Python, the
-OmniShotCut checkpoint, ffmpeg and google-chrome.
+SceneCut models, transformers (for DINOv3 outside ComfyUI), ffmpeg and google-chrome.
 """
 from __future__ import annotations
 
@@ -26,14 +26,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scenecut.media import iter_frames_at, probe  # noqa: E402
-from scenecut.omnishotcut import load_omnishotcut  # noqa: E402
-from scenecut.pipeline import run_preset  # noqa: E402
+from scenecut.headless import Models, run  # noqa: E402
 from scenecut.presets import get_preset  # noqa: E402
 from scenecut.proxy import make_proxy, proxy_size  # noqa: E402
 from scenecut.viewer import build_data, make_sprites  # noqa: E402
 
 ASSETS, SITE = ROOT / "assets", ROOT / "site"
-DEMO = ROOT / "dev" / "demo" / "scenecut-demo.mp4"
+DEMO = ROOT / "dev" / "demo" / "trailer.mp4"
+SELECTION = [2, 7, 14, 18]         # scenes selected on the page: the robe, the karate title, the kids, the title card
+INSPECT, INSPECT_OFFSET = 2, 30    # the scene the README screenshot inspects, and the frame in it
+BANNER = [2, 3, 6, 7, 9, 11, 14, 15, 18]   # scenes in the banner
 CHROME = "google-chrome"
 ACCENT = "#3ECF6E"
 THEMES = {
@@ -51,9 +53,8 @@ def models_dir() -> Path:
 
 
 def detect(device: str):
-    model = load_omnishotcut(str(models_dir() / "scenecut" / "OmniShotCut_ckpt.pth"), device)
-    preset = get_preset("film")
-    return run_preset(model, str(DEMO), preset)
+    models = Models.load(str(models_dir()), device=device, allow_download=False)
+    return run(str(DEMO), get_preset("film"), models)
 
 
 def site_data(sl) -> dict:
@@ -66,7 +67,7 @@ def site_data(sl) -> dict:
     sprites = make_sprites(sl, proxy, str(out), "thumbs", per_scene=3)
     data = build_data(sl, sprites, {"file": "proxy.mp4", "width": w, "height": h, "frames": probe(proxy).frame_count})
     data["source"]["path"] = data["source"]["name"]           # no local paths on the page
-    data["selection"] = [1, 6, 9, 13]
+    data["selection"] = SELECTION
     (out / "data.json").write_text(json.dumps(data, separators=(",", ":")))
     shutil.copyfile(ROOT / "web" / "viewer_core.js", SITE / "viewer_core.js")
     return data
@@ -86,7 +87,7 @@ def shoot(page: str, width: int, height: int, out: Path, wait_ms: int = 0) -> No
 
 def strip_frames(sl, count: int = 9):
     """A frame from the middle of each of `count` scenes, for the banner."""
-    picks = [s for s in sl.segments if s.kind == "shot" and s.length >= 12][1:1 + count]
+    picks = [sl.segments[i] for i in BANNER if i < len(sl.segments)][:count]
     frames = [s.start + s.length // 2 for s in picks]
     got = dict(iter_frames_at(str(DEMO), frames, 192, 108))
     import base64
@@ -149,7 +150,7 @@ def icon(paths: str) -> str:
             f'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{paths}</svg>\n')
 
 
-def viewer_shot(out: Path, data: dict, scene: int = 9, offset: int = 20) -> None:
+def viewer_shot(out: Path, data: dict, scene: int = INSPECT, offset: int = INSPECT_OFFSET) -> None:
     """The viewer as the page shows it, large layout, one scene inspected, four selected. Headless
     Chrome does not paint video frames, so the frame under the playhead is shown as an image."""
     import base64
@@ -188,7 +189,7 @@ def main() -> None:
     p.add_argument("--device", default="cuda")
     a = p.parse_args()
     if not DEMO.exists():
-        sys.exit("run dev/demo_footage.py first")
+        sys.exit("put the demo video at dev/demo/trailer.mp4 first")
     sl = detect(a.device)
     data = site_data(sl)
     (ASSETS / "icons").mkdir(parents=True, exist_ok=True)

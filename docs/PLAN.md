@@ -248,6 +248,25 @@ similarity of consecutive frames drops at a cut whatever the content. Cuts that 
 (31 of 33 failed either way: no single frame changes) are declined with a pointer to Join to
 nearest cut.
 
+**Validation: cuts that end a transition** (2026-10-16). When OmniShotCut labels a cut "after a
+transition" but gives the dissolve no range of its own, the frames just before the cut are the
+dissolve's tail and already show the next shot, so validation called it the same shot and merged it
+(the demo trailer lost the dissolve from the opening silhouette to the first scene). Such a cut is
+now also compared with 8 frames from 1.2 s before it, inside the previous segment; below 0.60
+similarity the transition joined two different scenes and the cut is kept. Real scene changes there
+score 0.18-0.57, one moving shot 0.74-0.79. On the reference films: short film and music video
+unchanged; ai-fantasi keeps one more cut (9165, a title card fading into a credit card).
+
+**Demo footage** (2026-10-16): the trailer of William Castle's Let's Kill Uncle (1966), public domain,
+replaces the generated footage. Film preset with validation: 23 scenes; Fix cut restores 18 of its 19
+hard cuts moved by 2 frames either way (the miss is the fade in from black at the start).
+
+**Viewer: frame-exact on files whose first frame starts late** (2026-10-16). The trailer's video
+starts at 0.033 s. The preview proxy kept that offset, and the viewer maps frame n to time
+(n + 0.5) / fps, so it showed frame n - 1 while reporting n. Proxies now start at 0 (video and sound
+shifted together; file names carry a version so old ones are rebuilt). Checked in the browser: on
+both sides of the trailer's cut at 330 the viewer shows the frame SceneCut decodes.
+
 ## Testing
 
 - `dev/ref_oracle.py` produces reference outputs from the old headless pipeline (run with that

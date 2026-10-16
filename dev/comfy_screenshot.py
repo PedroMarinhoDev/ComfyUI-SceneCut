@@ -3,7 +3,7 @@
     python dev/comfy_screenshot.py [--server http://127.0.0.1:8188]
 
 Drives headless Chrome over the DevTools protocol: opens the SceneCut-basic template on a running
-ComfyUI (with SceneCut installed), runs it on dev/demo/scenecut-demo.mp4, selects four scenes and
+ComfyUI (with SceneCut installed), runs it on dev/demo/trailer.mp4, selects four scenes and
 takes a 2x screenshot. Headless Chrome doesn't paint video frames, so the players show the frame
 they are on as a still image. Run it against a server with its own --user-directory: it changes
 settings. Needs ComfyUI's Python (aiohttp) and google-chrome.
@@ -26,7 +26,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scenecut.media import iter_frames_at  # noqa: E402
 
-DEMO = ROOT / "dev" / "demo" / "scenecut-demo.mp4"
+DEMO = ROOT / "dev" / "demo" / "trailer.mp4"
+SHOWN_PATH = "~/Videos/trailer.mp4"                 # the path the screenshot shows instead of this machine's
+SELECTION, INSPECT, INSPECT_OFFSET, SELECTED_AT = [2, 7, 14, 18], 2, 30, 1     # as in dev/site_assets.py
+PREVIEW_FRAME = 270
 W, H = 1720, 1060
 
 
@@ -50,9 +53,6 @@ SCRIPT = r"""
   const lv = app.graph.nodes.find((n) => n.type === "SceneCutLoadVideo");
   const w = lv.widgets.find((w) => w.name === "path");
   w.value = VIDEO; w.callback(w.value);
-  // validation is calibrated for camera footage; the generated demo runs without it, as on the page
-  const det = app.graph.nodes.find((n) => n.type === "SceneCutDetect");
-  det.widgets.find((x) => x.name === "validate").value = false;
   await sleep(1200);
   // fit the four nodes (DOM widgets only mount on screen) between the side bar and the top bar
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
@@ -72,14 +72,27 @@ SCRIPT = r"""
   for (let i = 0; i < 120 && !document.querySelector(".scv-root")?.sceneCutViewer?.data; i++) await sleep(250);
   for (let i = 0; i < 120 && !document.querySelector(".scs-root")?.sceneCutSelected?.data; i++) await sleep(250);
   const v = document.querySelector(".scv-root").sceneCutViewer;
-  v.setReview({ base: v.data.base, edits: [], selection: [1, 6, 9, 13] });
+  v.setReview({ base: v.data.base, edits: [], selection: SELECTION });
   v.opts.onReviewChange?.(v.review());
-  v.focusScene(9);
-  v._setFrame(v.segs[9].start + 20, false);
+  v.focusScene(INSPECT);
+  v._setFrame(v.segs[INSPECT].start + INSPECT_OFFSET, true);
+  await sleep(600);
   await sleep(800);
   const p = document.querySelector(".scs-root").sceneCutSelected;
-  p.go(1, false);
+  p.go(SELECTED_AT, false);
   await sleep(500);
+  window.__frames = { viewer: v.frame, selected: p.seg().start };
+  return JSON.stringify(window.__frames);
+})()
+"""
+
+SCRIPT2 = r"""
+(async () => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const app = window.comfyAPI.app.app;
+  const v = document.querySelector(".scv-root").sceneCutViewer;
+  const p = document.querySelector(".scs-root").sceneCutSelected;
+  const w = app.graph.nodes.find((n) => n.type === "SceneCutLoadVideo").widgets.find((w) => w.name === "path");
   const swap = (video, src) => {
     if (!video) return;
     const img = document.createElement("img");
@@ -94,7 +107,7 @@ SCRIPT = r"""
   swap(p.video, STILL_SELECTED);
   const preview = document.querySelector("video[src*='scenecut/media']");
   if (preview) { preview.poster = STILL_PREVIEW; preview.removeAttribute("src"); preview.load(); }
-  w.value = "~/Videos/scenecut-demo.mp4";       // shown instead of this machine's path (no callback: the preview stays)
+  w.value = SHOWN_PATH;                           // no callback: the preview stays
   document.querySelectorAll(".p-toast-message").forEach((t) => t.remove());
   app.canvas.setDirty(true, true);
   await sleep(1500);
@@ -133,11 +146,15 @@ async def main(server: str, out: Path) -> None:
                 await call("Emulation.setDeviceMetricsOverride", width=W, height=H, deviceScaleFactor=2, mobile=False)
                 await call("Page.navigate", url=f"{server}/?template=SceneCut-basic&source=ComfyUI-SceneCut")
                 await asyncio.sleep(6)
-                script = (SCRIPT.replace("VIDEO", json.dumps(str(DEMO)))
-                          .replace("STILL_VIEWER", json.dumps(still(710)))
-                          .replace("STILL_SELECTED", json.dumps(still(492)))
-                          .replace("STILL_PREVIEW", json.dumps(still(120)))
-                          )
+                script = (SCRIPT.replace("VIDEO", json.dumps(str(DEMO))).replace("SELECTION", json.dumps(SELECTION))
+                          .replace("INSPECT_OFFSET", str(INSPECT_OFFSET)).replace("INSPECT", str(INSPECT))
+                          .replace("SELECTED_AT", str(SELECTED_AT)))
+                res = await call("Runtime.evaluate", expression=script, awaitPromise=True, timeout=300000)
+                frames = json.loads(res["result"]["value"])
+                script = (SCRIPT2.replace("STILL_VIEWER", json.dumps(still(frames["viewer"])))
+                          .replace("STILL_SELECTED", json.dumps(still(frames["selected"] + 15)))
+                          .replace("STILL_PREVIEW", json.dumps(still(PREVIEW_FRAME)))
+                          .replace("SHOWN_PATH", json.dumps(SHOWN_PATH)))
                 res = await call("Runtime.evaluate", expression=script, awaitPromise=True, timeout=180000)
                 print(res.get("result", {}).get("value") or res.get("exceptionDetails", {}).get("exception", {}).get("description", res))
                 shot = await call("Page.captureScreenshot", format="png")

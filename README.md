@@ -24,8 +24,9 @@ frame *n* is the *n*-th decoded frame, never a seek that lands next to it.
 
 <a href="https://pedromarinhodev.github.io/ComfyUI-SceneCut/#demo"><img alt="The SceneCut Viewer: player, timeline with cut markers, scene cards with four scenes selected" src="assets/viewer.png" width="100%"></a>
 
-<sub>The SceneCut Viewer on the demo video, generated footage with 17 shots, a dissolve, a wipe, a jump cut and a fade.
-Blue: cut, purple: jump cut, orange: after a transition, green: selected. Click to try it in your browser.</sub>
+<sub>The SceneCut Viewer on the trailer of William Castle's <i>Let's Kill Uncle</i> (1966, public domain): 23 scenes, four
+selected, scene 3 inspected (a cut after a dissolve, kept by validation). Blue: cut, purple: jump cut, orange: after a
+transition, green: selected. Click to try it in your browser.</sub>
 
 <table>
   <tr>
@@ -168,9 +169,9 @@ For each cut, DINOv3 embeds the frames on both sides: a global vector and a 7×7
 is scored on how similar the two sides are, how abruptly the picture changes at the cut, camera motion, a colour histogram,
 and whether a brightness spike that returns to its baseline (a flash) sits on it. A per-video threshold separates "same
 shot" from "cut", and SSCD, a copy-detection descriptor that ignores lighting, breaks close calls. A cut kept beside a
-flash goes between the frames that look like each shot. Validation reads only the frames near cuts, in one pass, so memory
-stays flat however long the video. It is calibrated for camera footage: generated patterns all look alike to DINOv3, so
-the demo above runs without it.
+flash goes between the frames that look like each shot. A cut that ends a dissolve or fade is also compared with frames
+from before the transition: the frames just before it already show the next shot, so they alone would call it the same
+shot. Validation reads only the frames near cuts, in one pass, so memory stays flat however long the video.
 
 ## Requirements
 
@@ -241,7 +242,7 @@ SceneCut is written from scratch, building on ideas from:
 - **[OmniShotCut](https://github.com/UVA-Computer-Vision-Lab/OmniShotCut)** by the UVA Computer Vision Lab (MIT): the model
   and its checkpoint. SceneCut has its own implementation of the network and loads the official weights into it.
 
-The demo footage is made by ffmpeg's own generators ([`dev/demo_footage.py`](dev/demo_footage.py)).
+The demo footage is the trailer of William Castle's *Let's Kill Uncle* (1966), in the public domain.
 
 ## License
 
