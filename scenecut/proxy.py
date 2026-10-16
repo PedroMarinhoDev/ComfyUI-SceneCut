@@ -1,8 +1,9 @@
 """Preview proxies: a small H.264 copy of a video that any browser can play and seek quickly.
 
 Every source frame is kept (no frame-rate conversion), so frame n of the proxy is frame n of the
-source and the viewer can map time to frame exactly. Keyframes every 12 frames and no B-frames
-make seeking cheap. Audio, if any, is kept as AAC.
+source, and the first frame is moved to time 0 (some files start a frame or more late), so the
+viewer can map time to frame exactly: frame n is at n / fps. The sound moves with it. Keyframes
+every 12 frames and no B-frames make seeking cheap. Audio, if any, is kept as AAC.
 """
 from __future__ import annotations
 
@@ -14,6 +15,23 @@ from typing import Callable, Optional
 from .media import ffmpeg_binary, probe
 
 KEYINT = 12
+VERSION = 2              # in the file name: proxies of version 1 kept a late first frame's offset
+
+
+def proxy_name(src: str, height: int) -> str:
+    return f"proxy_{cache_key(src)}_{height}_v{VERSION}.mp4"
+
+
+def stream_starts(src: str) -> tuple[float, Optional[float]]:
+    """Start time in seconds of the first video stream and of the first audio stream (None)."""
+    import av
+
+    with av.open(src) as c:
+        v = c.streams.video[0]
+        vs = float(v.start_time * v.time_base) if v.start_time is not None else 0.0
+        a = c.streams.audio[0] if c.streams.audio else None
+        as_ = float(a.start_time * a.time_base) if a is not None and a.start_time is not None else (0.0 if a else None)
+    return vs, as_
 
 
 def cache_key(path: str, *parts) -> str:
@@ -51,10 +69,14 @@ def make_proxy(src: str, dst: str, height: int = 360, frame_count: Optional[int]
 
 
 def _ffmpeg_proxy(src, tmp, w, h, has_audio, total, progress, check_abort):
+    v0, a0 = stream_starts(src)
     cmd = [ffmpeg_binary(), "-v", "error", "-nostdin", "-y", "-i", src, "-map", "0:v:0"]
     if has_audio:
-        cmd += ["-map", "0:a:0?", "-c:a", "aac", "-b:a", "96k", "-ac", "2"]
-    cmd += ["-vf", f"scale={w}:{h}:flags=bicubic,format=yuv420p", "-fps_mode", "passthrough",
+        # the same shift as the video: sound before the first frame is cut, a late start is delayed
+        lead = (a0 or 0.0) - v0
+        af = (f"atrim=start={-lead:.6f}," if lead < 0 else f"adelay={lead * 1000:.3f}:all=1,") + "asetpts=PTS-STARTPTS"
+        cmd += ["-map", "0:a:0?", "-af", af, "-c:a", "aac", "-b:a", "96k", "-ac", "2"]
+    cmd += ["-vf", f"setpts=PTS-STARTPTS,scale={w}:{h}:flags=bicubic,format=yuv420p", "-fps_mode", "passthrough",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "27", "-g", str(KEYINT),
             "-keyint_min", str(KEYINT), "-sc_threshold", "0", "-bf", "0",
             "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", tmp]

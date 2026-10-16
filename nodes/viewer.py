@@ -10,7 +10,7 @@ import folder_paths
 from comfy_api.latest import io
 
 from ..scenecut.media import probe
-from ..scenecut.proxy import cache_key, make_proxy, proxy_size
+from ..scenecut.proxy import cache_key, make_proxy, proxy_name, proxy_size
 from ..scenecut.review import apply_review, fingerprint
 from ..scenecut.viewer import build_data, make_sprites, report_html, write_data
 from .common import (CATEGORY, Progress, Scenes, expand_prefix, fps_input, image_output_input, images_input,
@@ -62,7 +62,7 @@ def prepare_view(sl, proxy: bool = True, proxy_height: str = "360", thumbs_per_s
     progress = Progress(total * (2 if proxy else 1))
     proxy_meta, thumb_source = None, src
     if proxy:
-        name = f"proxy_{key}_{h}.mp4"
+        name = proxy_name(src, h)
         path = make_proxy(src, os.path.join(tmp, name), h, frame_count=total,
                           progress=lambda d, t: progress(d), check_abort=progress.check_abort)
         w, ph = proxy_size(sl.source.width, sl.source.height, h)

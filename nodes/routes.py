@@ -25,7 +25,7 @@ from ..scenecut.browse import VIDEO_EXTENSIONS, list_dir, system_roots, within
 from ..scenecut.export import (CODECS, DEFAULT_CODEC, DEFAULT_QUALITY, JSON_ONLY, QUALITY, ExportCancelled,
                                available_codecs, codec_works, write_export)
 from ..scenecut.media import probe
-from ..scenecut.proxy import cache_key, make_proxy
+from ..scenecut.proxy import make_proxy, proxy_name
 from ..scenecut.review import apply_edits, apply_review, auto_fix, manual_fix, parse
 from ..scenecut.scenes import SceneList
 
@@ -303,7 +303,7 @@ def register_review_routes(routes, web) -> None:
         except PermissionError as e:
             return web.json_response({"error": str(e)}, status=403)
         height = 360
-        name = f"proxy_{cache_key(full)}_{height}.mp4"
+        name = proxy_name(full, height)
         dst = os.path.join(temp_dir(), name)
         lock = _proxy_locks.setdefault(name, asyncio.Lock())
         try:

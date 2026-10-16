@@ -76,3 +76,29 @@ def test_cancel_removes_partial_files(av_video, tmp_path):
     with pytest.raises(E.ExportCancelled):
         E.export_clips(av_video, [(0, 0, 300)], str(tmp_path), "h264", check_abort=abort, scene_total=1)
     assert os.listdir(tmp_path) == []
+
+
+def test_proxy_starts_at_zero_when_the_source_starts_late(tmp_path):
+    """Frame n of the proxy is at n / fps even when the source's first frame is stamped later
+    (the viewer maps time to frame that way)."""
+    import av
+
+    from scenecut.proxy import make_proxy
+
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        pytest.skip("ffmpeg binary needed")
+    src = str(tmp_path / "late.mp4")
+    subprocess.run([ffmpeg, "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=25:duration=2",
+                    "-f", "lavfi", "-t", "2", "-i", "sine=frequency=440:sample_rate=48000",
+                    "-c:v", "libx264", "-c:a", "aac", "-output_ts_offset", "0.08", src], check=True)
+    with av.open(src) as c:
+        assert c.streams.video[0].start_time * c.streams.video[0].time_base > 0.05
+    proxy = make_proxy(src, str(tmp_path / "proxy.mp4"), 120)
+    with av.open(proxy) as c:
+        v = c.streams.video[0]
+        first = next(c.decode(v))
+        assert abs(float(first.pts * v.time_base)) < 1e-3
+    a = dict(iter_frames_at(src, [0, 10, 49], 160, 120))
+    b = dict(iter_frames_at(proxy, [0, 10, 49], 160, 120))
+    assert all(np.abs(a[k].astype(float) - b[k]).mean() < 8 for k in a)
