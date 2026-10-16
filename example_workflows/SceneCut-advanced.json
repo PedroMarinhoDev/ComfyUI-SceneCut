@@ -1,0 +1,1037 @@
+{
+ "id": "efca6f22-e64c-4e25-8b5a-08e0e7c56f10",
+ "revision": 0,
+ "last_node_id": 9,
+ "last_link_id": 8,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "SceneCutLoadVideo",
+   "pos": [
+    20,
+    40
+   ],
+   "size": [
+    360,
+    340
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "path",
+     "name": "path",
+     "type": "STRING",
+     "widget": {
+      "name": "path"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "video",
+     "name": "video",
+     "type": "VIDEO",
+     "links": [
+      1
+     ]
+    },
+    {
+     "localized_name": "frame_count",
+     "name": "frame_count",
+     "type": "INT",
+     "links": null
+    },
+    {
+     "localized_name": "fps",
+     "name": "fps",
+     "type": "FLOAT",
+     "links": null
+    },
+    {
+     "localized_name": "duration",
+     "name": "duration",
+     "type": "FLOAT",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutLoadVideo"
+   },
+   "widgets_values": [
+    ""
+   ],
+   "widgets_values_named": {
+    "path": ""
+   }
+  },
+  {
+   "id": 2,
+   "type": "SceneCutDetectorLoader",
+   "pos": [
+    20,
+    420
+   ],
+   "size": [
+    275.7271484375,
+    82
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "model",
+     "name": "model",
+     "type": "COMBO",
+     "widget": {
+      "name": "model"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "device",
+     "name": "device",
+     "type": "COMBO",
+     "widget": {
+      "name": "device"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "detector",
+     "name": "detector",
+     "type": "SCENECUT_DETECTOR",
+     "links": [
+      2
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutDetectorLoader"
+   },
+   "widgets_values": [
+    "OmniShotCut_ckpt.pth",
+    "default"
+   ],
+   "widgets_values_named": {
+    "model": "OmniShotCut_ckpt.pth",
+    "device": "default"
+   }
+  },
+  {
+   "id": 3,
+   "type": "SceneCutDetectAdvanced",
+   "pos": [
+    20,
+    560
+   ],
+   "size": [
+    293.0630859375,
+    194
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "video",
+     "name": "video",
+     "type": "VIDEO",
+     "link": 1
+    },
+    {
+     "localized_name": "detector",
+     "name": "detector",
+     "shape": 7,
+     "type": "SCENECUT_DETECTOR",
+     "link": 2
+    },
+    {
+     "localized_name": "overlap",
+     "name": "overlap",
+     "type": "INT",
+     "widget": {
+      "name": "overlap"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "confidence",
+     "name": "confidence",
+     "type": "FLOAT",
+     "widget": {
+      "name": "confidence"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "batch_windows",
+     "name": "batch_windows",
+     "type": "INT",
+     "widget": {
+      "name": "batch_windows"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "decoder",
+     "name": "decoder",
+     "type": "COMBO",
+     "widget": {
+      "name": "decoder"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "output_images",
+     "name": "output_images",
+     "type": "COMBO",
+     "widget": {
+      "name": "output_images"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "type": "SCENECUT_SCENES",
+     "links": [
+      3
+     ]
+    },
+    {
+     "localized_name": "summary",
+     "name": "summary",
+     "type": "STRING",
+     "links": null
+    },
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutDetectAdvanced"
+   },
+   "widgets_values": [
+    20,
+    0,
+    8,
+    "auto",
+    "off"
+   ],
+   "widgets_values_named": {
+    "overlap": 20,
+    "confidence": 0,
+    "batch_windows": 8,
+    "decoder": "auto",
+    "output_images": "off"
+   }
+  },
+  {
+   "id": 4,
+   "type": "SceneCutRefine",
+   "pos": [
+    380,
+    420
+   ],
+   "size": [
+    277.712890625,
+    214
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "type": "SCENECUT_SCENES",
+     "link": 3
+    },
+    {
+     "localized_name": "transitions",
+     "name": "transitions",
+     "type": "COMBO",
+     "widget": {
+      "name": "transitions"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "min_shot_seconds",
+     "name": "min_shot_seconds",
+     "type": "FLOAT",
+     "widget": {
+      "name": "min_shot_seconds"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "snap_radius",
+     "name": "snap_radius",
+     "type": "INT",
+     "widget": {
+      "name": "snap_radius"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "ultra_short_seconds",
+     "name": "ultra_short_seconds",
+     "type": "FLOAT",
+     "widget": {
+      "name": "ultra_short_seconds"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "output_images",
+     "name": "output_images",
+     "type": "COMBO",
+     "widget": {
+      "name": "output_images"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "type": "SCENECUT_SCENES",
+     "links": [
+      4
+     ]
+    },
+    {
+     "localized_name": "shot_count",
+     "name": "shot_count",
+     "type": "INT",
+     "links": null
+    },
+    {
+     "localized_name": "summary",
+     "name": "summary",
+     "type": "STRING",
+     "links": null
+    },
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutRefine"
+   },
+   "widgets_values": [
+    "merge_previous",
+    0.4,
+    2,
+    0.05,
+    "off"
+   ],
+   "widgets_values_named": {
+    "transitions": "merge_previous",
+    "min_shot_seconds": 0.4,
+    "snap_radius": 2,
+    "ultra_short_seconds": 0.05,
+    "output_images": "off"
+   }
+  },
+  {
+   "id": 5,
+   "type": "SceneCutValidatorLoader",
+   "pos": [
+    380,
+    40
+   ],
+   "size": [
+    276.882421875,
+    130
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "dinov3",
+     "name": "dinov3",
+     "type": "COMBO",
+     "widget": {
+      "name": "dinov3"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "sscd",
+     "name": "sscd",
+     "type": "COMBO",
+     "widget": {
+      "name": "sscd"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "precision",
+     "name": "precision",
+     "type": "COMBO",
+     "widget": {
+      "name": "precision"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "device",
+     "name": "device",
+     "type": "COMBO",
+     "widget": {
+      "name": "device"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "validator",
+     "name": "validator",
+     "type": "SCENECUT_VALIDATOR",
+     "links": [
+      5
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutValidatorLoader"
+   },
+   "widgets_values": [
+    "dinov3_vitl16_pretrain_lvd1689m.safetensors",
+    "sscd_disc_large.torchscript.pt",
+    "fp32",
+    "default"
+   ],
+   "widgets_values_named": {
+    "dinov3": "dinov3_vitl16_pretrain_lvd1689m.safetensors",
+    "sscd": "sscd_disc_large.torchscript.pt",
+    "precision": "fp32",
+    "device": "default"
+   }
+  },
+  {
+   "id": 6,
+   "type": "SceneCutValidate",
+   "pos": [
+    380,
+    640
+   ],
+   "size": [
+    302.24375,
+    310
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "type": "SCENECUT_SCENES",
+     "link": 4
+    },
+    {
+     "localized_name": "validator",
+     "name": "validator",
+     "shape": 7,
+     "type": "SCENECUT_VALIDATOR",
+     "link": 5
+    },
+    {
+     "localized_name": "window",
+     "name": "window",
+     "type": "INT",
+     "widget": {
+      "name": "window"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "flash_sensitivity",
+     "name": "flash_sensitivity",
+     "type": "FLOAT",
+     "widget": {
+      "name": "flash_sensitivity"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "adaptive_threshold",
+     "name": "adaptive_threshold",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "adaptive_threshold"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "threshold",
+     "name": "threshold",
+     "type": "FLOAT",
+     "widget": {
+      "name": "threshold"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "dense_weight",
+     "name": "dense_weight",
+     "type": "FLOAT",
+     "widget": {
+      "name": "dense_weight"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "short_guard_seconds",
+     "name": "short_guard_seconds",
+     "type": "FLOAT",
+     "widget": {
+      "name": "short_guard_seconds"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "flash_cleanup",
+     "name": "flash_cleanup",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "flash_cleanup"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "ultra_short_seconds",
+     "name": "ultra_short_seconds",
+     "type": "FLOAT",
+     "widget": {
+      "name": "ultra_short_seconds"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "output_images",
+     "name": "output_images",
+     "type": "COMBO",
+     "widget": {
+      "name": "output_images"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "type": "SCENECUT_SCENES",
+     "links": [
+      6
+     ]
+    },
+    {
+     "localized_name": "shot_count",
+     "name": "shot_count",
+     "type": "INT",
+     "links": null
+    },
+    {
+     "localized_name": "summary",
+     "name": "summary",
+     "type": "STRING",
+     "links": null
+    },
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutValidate"
+   },
+   "widgets_values": [
+    5,
+    15,
+    true,
+    0.8,
+    0.45,
+    0.3,
+    true,
+    0.05,
+    "off"
+   ],
+   "widgets_values_named": {
+    "window": 5,
+    "flash_sensitivity": 15,
+    "adaptive_threshold": true,
+    "threshold": 0.8,
+    "dense_weight": 0.45,
+    "short_guard_seconds": 0.3,
+    "flash_cleanup": true,
+    "ultra_short_seconds": 0.05,
+    "output_images": "off"
+   }
+  },
+  {
+   "id": 7,
+   "type": "SceneCutViewer",
+   "pos": [
+    760,
+    40
+   ],
+   "size": [
+    840,
+    880
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "shape": 7,
+     "type": "SCENECUT_SCENES",
+     "link": 6
+    },
+    {
+     "localized_name": "images",
+     "name": "images",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "localized_name": "fps",
+     "name": "fps",
+     "shape": 7,
+     "type": "FLOAT",
+     "link": null
+    },
+    {
+     "localized_name": "proxy",
+     "name": "proxy",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "proxy"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "proxy_height",
+     "name": "proxy_height",
+     "type": "COMBO",
+     "widget": {
+      "name": "proxy_height"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "thumbs_per_scene",
+     "name": "thumbs_per_scene",
+     "type": "COMBO",
+     "widget": {
+      "name": "thumbs_per_scene"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "save_report",
+     "name": "save_report",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "save_report"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "output_images",
+     "name": "output_images",
+     "type": "COMBO",
+     "widget": {
+      "name": "output_images"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "report_prefix",
+     "name": "report_prefix",
+     "shape": 7,
+     "type": "STRING",
+     "widget": {
+      "name": "report_prefix"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "review",
+     "name": "review",
+     "shape": 7,
+     "type": "STRING",
+     "widget": {
+      "name": "review"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "type": "SCENECUT_SCENES",
+     "links": [
+      7,
+      8
+     ]
+    },
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutViewer"
+   },
+   "widgets_values": [
+    true,
+    "360",
+    "3",
+    false,
+    "off",
+    "scenecut/{video}/report",
+    ""
+   ],
+   "widgets_values_named": {
+    "proxy": true,
+    "proxy_height": "360",
+    "thumbs_per_scene": "3",
+    "save_report": false,
+    "output_images": "off",
+    "report_prefix": "scenecut/{video}/report",
+    "review": ""
+   }
+  },
+  {
+   "id": 8,
+   "type": "SceneCutSelectedScenes",
+   "pos": [
+    1640,
+    40
+   ],
+   "size": [
+    660,
+    640
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "shape": 7,
+     "type": "SCENECUT_SCENES",
+     "link": 7
+    },
+    {
+     "localized_name": "images",
+     "name": "images",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "localized_name": "fps",
+     "name": "fps",
+     "shape": 7,
+     "type": "FLOAT",
+     "link": null
+    },
+    {
+     "localized_name": "proxy",
+     "name": "proxy",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "proxy"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "proxy_height",
+     "name": "proxy_height",
+     "type": "COMBO",
+     "widget": {
+      "name": "proxy_height"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "thumbs_per_scene",
+     "name": "thumbs_per_scene",
+     "type": "COMBO",
+     "widget": {
+      "name": "thumbs_per_scene"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "output_images",
+     "name": "output_images",
+     "type": "COMBO",
+     "widget": {
+      "name": "output_images"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "type": "SCENECUT_SCENES",
+     "links": null
+    },
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutSelectedScenes"
+   },
+   "widgets_values": [
+    true,
+    "360",
+    "3",
+    "off"
+   ],
+   "widgets_values_named": {
+    "proxy": true,
+    "proxy_height": "360",
+    "thumbs_per_scene": "3",
+    "output_images": "off"
+   }
+  },
+  {
+   "id": 9,
+   "type": "SceneCutContactSheet",
+   "pos": [
+    1640,
+    720
+   ],
+   "size": [
+    270,
+    218
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "scenes",
+     "name": "scenes",
+     "shape": 7,
+     "type": "SCENECUT_SCENES",
+     "link": 8
+    },
+    {
+     "localized_name": "images",
+     "name": "images",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "localized_name": "fps",
+     "name": "fps",
+     "shape": 7,
+     "type": "FLOAT",
+     "link": null
+    },
+    {
+     "localized_name": "frames_per_scene",
+     "name": "frames_per_scene",
+     "type": "COMBO",
+     "widget": {
+      "name": "frames_per_scene"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "thumb_width",
+     "name": "thumb_width",
+     "type": "INT",
+     "widget": {
+      "name": "thumb_width"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "columns",
+     "name": "columns",
+     "type": "INT",
+     "widget": {
+      "name": "columns"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "rows",
+     "name": "rows",
+     "type": "INT",
+     "widget": {
+      "name": "rows"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "first_scene",
+     "name": "first_scene",
+     "type": "INT",
+     "widget": {
+      "name": "first_scene"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "max_pages",
+     "name": "max_pages",
+     "type": "INT",
+     "widget": {
+      "name": "max_pages"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "pages",
+     "name": "pages",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SceneCutContactSheet"
+   },
+   "widgets_values": [
+    "3",
+    192,
+    4,
+    6,
+    1,
+    4
+   ],
+   "widgets_values_named": {
+    "frames_per_scene": "3",
+    "thumb_width": 192,
+    "columns": 4,
+    "rows": 6,
+    "first_scene": 1,
+    "max_pages": 4
+   }
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   3,
+   0,
+   "VIDEO"
+  ],
+  [
+   2,
+   2,
+   0,
+   3,
+   1,
+   "SCENECUT_DETECTOR"
+  ],
+  [
+   3,
+   3,
+   0,
+   4,
+   0,
+   "SCENECUT_SCENES"
+  ],
+  [
+   4,
+   4,
+   0,
+   6,
+   0,
+   "SCENECUT_SCENES"
+  ],
+  [
+   5,
+   5,
+   0,
+   6,
+   1,
+   "SCENECUT_VALIDATOR"
+  ],
+  [
+   6,
+   6,
+   0,
+   7,
+   0,
+   "SCENECUT_SCENES"
+  ],
+  [
+   7,
+   7,
+   0,
+   8,
+   0,
+   "SCENECUT_SCENES"
+  ],
+  [
+   8,
+   7,
+   0,
+   9,
+   0,
+   "SCENECUT_SCENES"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.5,
+   "offset": [
+    30,
+    30
+   ]
+  }
+ },
+ "version": 0.4
+}

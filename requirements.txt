@@ -1,0 +1,3 @@
+# Everything else (torch, torchvision, numpy, Pillow, av) ships with ComfyUI.
+huggingface_hub
+safetensors
