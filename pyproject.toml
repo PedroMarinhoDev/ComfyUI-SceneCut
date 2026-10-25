@@ -1,20 +1,21 @@
 [project]
-name = "comfyui-scenecut"
+name = "scenecut"
 description = "Find every cut in a video, fix the ones a frame off, pick the scenes you want and export them as clips: OmniShotCut detection, DINOv3 validation, a review viewer and frame-exact clip export, natively in ComfyUI."
 version = "0.1.0"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
-dependencies = [
-    "huggingface_hub",
-    "safetensors",
-]
+classifiers = ["Operating System :: OS Independent"]
+dependencies = ["huggingface_hub", "safetensors"]
 
 [project.urls]
 Repository = "https://github.com/PedroMarinhoDev/ComfyUI-SceneCut"
+Documentation = "https://github.com/PedroMarinhoDev/ComfyUI-SceneCut#readme"
+"Bug Tracker" = "https://github.com/PedroMarinhoDev/ComfyUI-SceneCut/issues"
 Homepage = "https://pedromarinhodev.github.io/ComfyUI-SceneCut/"
 
 [tool.comfy]
-PublisherId = ""
-DisplayName = "ComfyUI-SceneCut"
-Icon = ""
-includes = []
+PublisherId = "pedromarinhodev"
+DisplayName = "SceneCut"
+Icon = "https://raw.githubusercontent.com/PedroMarinhoDev/ComfyUI-SceneCut/main/assets/registry-icon.png"
+Banner = "https://raw.githubusercontent.com/PedroMarinhoDev/ComfyUI-SceneCut/main/assets/registry-banner.png"
+requires-comfyui = ">=0.39.0"

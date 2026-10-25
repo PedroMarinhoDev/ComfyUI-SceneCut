@@ -43,7 +43,8 @@ transition, green: selected. Click to try it in your browser.</sub>
 
 ## Quick start
 
-1. **Install the nodes.** Clone into `custom_nodes`, install the two small requirements and restart ComfyUI.
+1. **Install the nodes** and restart ComfyUI. Search for **SceneCut** in ComfyUI-Manager, or install it from the [Comfy Registry](https://registry.comfy.org/nodes/scenecut) with `comfy node install scenecut`. The Manager installs the two small
+   requirements too. Or clone into `custom_nodes` and install them yourself:
 
    ```bash
    cd ComfyUI/custom_nodes
